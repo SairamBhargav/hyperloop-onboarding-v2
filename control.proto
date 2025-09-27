@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+message controlMsg {
+  int32 id = 1;
+  string command = 2;
+  float value = 3;
+}   
+
