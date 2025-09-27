@@ -1,0 +1,44 @@
+#include <Arduino.h>
+#include <SPI.h>
+#include <EthernetUdp.h>
+#include "pb_decode.h"
+#include "control.pb.h"
+
+// Ethernet setup
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+IPAddress ip(192, 168, 1, 50); // Teensy’s IP
+unsigned int localPort = 5005;
+EthernetUDP Udp;
+
+void setup() {
+  Serial.begin(9600);
+  Ethernet.begin(mac, ip);
+  Udp.begin(localPort);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.println("Teensy listening...");
+}
+
+void loop() {
+  int packetSize = Udp.parsePacket();
+  if (packetSize) {
+    uint8_t buffer[256];
+    int len = Udp.read(buffer, sizeof(buffer));
+    if (len > 0) {
+      pb_istream_t stream = pb_istream_from_buffer(buffer, len);
+      ControlMsg msg = ControlMsg_init_zero;
+
+      if (pb_decode(&stream, ControlMsg_fields, &msg)) {
+        Serial.print("Got command: ");
+        Serial.println(msg.command);
+
+        if (strcmp(msg.command, "LED_ON") == 0) {
+          digitalWrite(LED_BUILTIN, HIGH);
+        } else if (strcmp(msg.command, "LED_OFF") == 0) {
+          digitalWrite(LED_BUILTIN, LOW);
+        }
+      } else {
+        Serial.println("Protobuf decode failed!");
+      }
+    }
+  }
+}
