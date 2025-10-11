@@ -1,19 +1,20 @@
 import redis
 import socket
 
-UDP_IP = "192.168.1.50"   
-UDP_PORT = 5005
+TCP_IP = "127.0.0.1"
+TCP_PORT = 6379
 
 r = redis.Redis(host="localhost", port=6379, db=0)
 pubsub = r.pubsub()
 pubsub.subscribe("teensy_channel")
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((TCP_IP, TCP_PORT))
 
-print("Bridge running...")
+print("TCP bridge running...")
 
 for item in pubsub.listen():
     if item['type'] == 'message':
         payload = item['data']
-        sock.sendto(payload, (UDP_IP, UDP_PORT))
-        print("Forwarded", len(payload), "bytes")
+        sock.sendall(payload)  # TCP send
+        print("Sent", len(payload), "bytes over TCP")
